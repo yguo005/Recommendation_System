@@ -1,0 +1,24 @@
+How to run the download_amazon_beauty.py
+Purpose: download amazon beauty dataset and save train/test/valid Splits
+
+# Activate virtual environment
+source recbole_env/bin/activate
+
+# Run the script
+python3 download_amazon_beauty.py
+
+How to run amazon_beauty_EDA.ipynb
+Purpose: Exploratory Data Analysis of interation dataset and item dataset, do data preprocessing 
+before feeding into recommendation models
+
+# Activate virtual environment
+source recbole_env/bin/activate
+
+# Launch Jupyter
+jupyter notebook
+
+It will automatically open jupyter notebook link, if not: open the link: http://localhost:8888
+
+choose amazon_beauty_EDA.ipynb
+choose kernel: Rebcole(Python3.12)
+
