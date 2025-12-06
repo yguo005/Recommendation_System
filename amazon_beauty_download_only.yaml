@@ -1,5 +1,5 @@
 # RecBole Configuration for Amazon Beauty Dataset
-# DOWNLOAD & PREPROCESSING ONLY (minimal, fast setup)
+# DOWNLOAD & PREPROCESSING ONLY 
 
 # Dataset name (RecBole recognizes this and will auto-download)
 dataset: amazon-beauty

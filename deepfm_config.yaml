@@ -1,0 +1,72 @@
+
+# This is RecBole configuration file that defines:
+# Data loading (which files/columns to use)
+# Model architecture (DeepFM hyperparameters)
+# Training settings (epochs, batch size, learning rate, loss)
+# Evaluation (metrics, split strategy)
+# Reproducibility (seed, etc.)
+
+model: DeepFM
+dataset: amazon-beauty
+data_path: dataset/
+
+# Field definitions
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+RATING_FIELD: rating
+TIME_FIELD: timestamp
+
+field_separator: "\t"
+seq_separator: " "
+
+# Load interaction and item metadata columns
+load_col:
+  inter: [user_id, item_id, rating, timestamp]
+  item: [item_id, title, sales_type, sales_rank, categories, price, brand]
+
+# Treat ratings as implicit feedback (>= 1 => positive)
+threshold:
+  rating: 0
+LABEL_FIELD: label
+
+# Data split strategy: time-aware, leave-last interactions for valid/test
+eval_args:
+  split: {'RS': [0.8, 0.1, 0.1]}
+  group_by: user
+  order: TO
+  mode: uni5  #  sample 5 negatives per user
+
+# Model hyperparameters
+embedding_size: 64
+dnn_hidden_units: [256, 128, 64]
+dropout_prob: 0.2
+
+# Training settings
+epochs: 5
+early_stop: 2        # stop if no improvement for 2 evals
+eval_step: 2         # run validation every 2 epochs
+train_batch_size: 4096
+eval_batch_size: 4096
+learning_rate: 0.001
+loss_type: BCE # Binary Cross Entropy: data is implicit feedback (interaction = 1, no interaction = 0), DeepFM predicts a probability that a user will interact with an item, BCE measures how well predicted probabilities match binary labels
+train_neg_sample_args:
+  distribution: uniform
+  sample_num: 1  # Sample 1 negative per positive during training
+
+# GPU settings
+use_gpu: True
+n_gpu: 1          # number of GPUs to use (set to 0 for CPU)
+gpu_id: 0         # GPU index to use when n_gpu = 1
+
+# Evaluation metrics (ranking metrics with sampled negatives)
+metrics: ['Recall', 'NDCG', 'Hit']
+topk: [10, 20]
+valid_metric: Recall@10
+
+# Checkpoint saving cadence
+save_step: 2
+
+seed: 2024
+reproducibility: True
+show_progress: True
+

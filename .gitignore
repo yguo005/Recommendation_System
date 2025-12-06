@@ -39,3 +39,10 @@ Thumbs.db
 
 # RecBole cache
 .recbole/
+
+# Exclude retrieval_v2 and PDF/Word documents
+Retrieval_v2.ipynb
+retrieval_v2.ipynb
+*.pdf
+*.docx
+*.doc
