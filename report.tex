@@ -1,0 +1,205 @@
+\documentclass[11pt, a4paper]{article}
+
+% Required Packages
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs} % For prettier tables
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Margins
+\geometry{
+    a4paper,
+    total={170mm,257mm},
+    left=20mm,
+    top=20mm,
+}
+
+% Title Data
+\title{\textbf{Recommendation System: \\  Analysis on the Amazon Beauty Dataset}}
+\author{Yunyu Guo \hspace{0.25cm} GuanMing Zhong \\ CS 6140: Machine Learning \\ Northeastern University}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This project develops and evaluates a multi-stage recommendation pipeline for the Amazon Beauty dataset. We address the challenge of high data sparsity (99.99\%) and the "long-tail" item distribution. The proposed pipeline consists of a candidate generation phase using a Neural Two-Tower architecture with FAISS indexing, followed by a fine-grained ranking phase comparing a Factorization Machine (DeepFM) against Gradient Boosted Trees (XGBoost). We demonstrate that while DeepFM provides robust ranking, XGBoost requires careful negative sampling to avoid data leakage. We evaluate our models using Hit Rate, Recall@K, and NDCG@K, comparing them against Item-KNN baselines.
+\end{abstract}
+
+\section{Introduction}
+ The core challenge addressed in this project is providing personalized rankings in a high-sparsity environment. The Amazon Beauty dataset presents significant "cold-start" challenges. 
+
+This report details the implementation of a funnel architecture:
+\begin{enumerate}
+    \item \textbf{Retrieval:} Reducing the search space from 250k items to a small candidate set using embedding-based retrieval (Two-Tower).
+    \item \textbf{Ranking:} Re-ordering candidates using feature rich models (DeepFM and XGBoost).
+\end{enumerate}
+
+\section{Dataset and Exploratory Data Analysis}
+The dataset used is the \texttt{Amazon-Beauty} benchmark from RecBole.
+
+\subsection{Data Statistics}
+\begin{itemize}
+    \item \textbf{Users:} 1,210,271
+    \item \textbf{Items:} 249,274
+    \item \textbf{Interactions:} 2,023,070
+    \item \textbf{Sparsity:} 99.99\%
+\end{itemize}
+
+\subsection{Analysis}
+As analyzed in our EDA notebook, the interaction distribution follows a power law (Long Tail).
+\begin{itemize}
+    \item \textbf{User Activity:} The majority of users have fewer than 5 interactions. We applied a 5-core filter (k-core filtering) to ensure model stability.
+    \item \textbf{Item Popularity:} A small fraction of "blockbuster" items dominate sales, necessitating robust negative sampling to prevent popularity bias.
+    \item \textbf{Features:} We utilized item metadata including Price, Sales Rank, and Brand for the XGBoost ranking model.
+\end{itemize}
+
+% Placeholder for plots from amazon_beauty_EDA.ipynb
+\begin{figure}[H]
+    \centering
+    % First Subfigure
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Inter_user.png}
+        \caption{User Interaction Distribution}
+        \label{fig:sub1}
+    \end{subfigure}
+    \hfill % This adds space between the images
+    % Second Subfigure
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Inter_item.png}
+        \caption{Item Interaction Distribution}
+        \label{fig:sub2}
+    \end{subfigure}
+    
+    \caption{Exploratory Data Analysis comparing User and Item distributions.}
+    \label{fig:combined_plots}
+\end{figure}
+
+\section{Methodology}
+
+To address the scale and sparsity of the Amazon Beauty dataset, we designed a "Retrieve-then-Rank" funnel architecture. This multi-stage pipeline allows us to balance computational efficiency with ranking accuracy.
+
+\subsection{System Pipeline Architecture}
+The end-to-end workflow is implemented in four distinct stages, as illustrated in Figure \ref{fig:workflow}:
+
+\begin{itemize}
+    \item \textbf{Stage 1: Model Training.} We independently train the retrieval and ranking models. The Two-Tower model is trained using contrastive learning on user-item interaction pairs. Simultaneously, the DeepFM model is trained on the full dataset using RecBole's standard protocol to learn feature interactions.
+    
+    \item \textbf{Stage 2: Candidate Generation (Retrieval).} 
+    Using the trained Two-Tower model, we generate embeddings for all users and items. We utilize \texttt{FAISS} to perform Approximate Nearest Neighbor (ANN) search. For every user in the test set, we retrieve the top $N=200$ candidates based on cosine similarity.
+    $$ \text{Candidates}_u = \text{KNN}(\mathbf{e}_u, \{\mathbf{e}_i\}_{i \in \mathcal{I}}, k=200) $$
+    
+    \item \textbf{Stage 3: Re-Ranking.} 
+    The 200 candidates from Stage 2 are fed into the DeepFM model. DeepFM predicts the probability of interaction for each user-item pair utilizing both ID embeddings and auxiliary features (Brand, Category, Price). The candidates are re-sorted based on these probabilities.
+    
+    \item \textbf{Stage 4: Evaluation.} 
+    The final re-ranked lists are evaluated against the held-out test set using Hit Rate, Recall, and NDCG metrics.
+\end{itemize}
+
+% Visual representation of your ASCII Diagram
+\begin{figure}[H]
+    \centering
+    \fbox{
+    \begin{minipage}{0.9\textwidth}
+        \footnotesize
+        \textbf{STAGE 1: Training} \\
+        $\bullet$ Train DeepFM (Factorization Machine + DNN) \\
+        $\bullet$ Train Two-Tower (Dual Encoder) \& Build FAISS Index \\
+        
+        \centering $\downarrow$ \\
+        
+        \raggedright
+        \textbf{STAGE 2: Retrieval} \\
+        $\bullet$ Generate Candidates via ANN Search \\
+        $\bullet$ Output: Top-200 Items per User \\
+        
+        \centering $\downarrow$ \\
+        
+        \raggedright
+        \textbf{STAGE 3: Ranking} \\
+        $\bullet$ Score Top-200 candidates using DeepFM \\
+        $\bullet$ Sort candidates by predicted click probability \\
+        
+        \centering $\downarrow$ \\
+        
+        \raggedright
+        \textbf{STAGE 4: Evaluation} \\
+        $\bullet$ Compare ranked list vs. Ground Truth \\
+        $\bullet$ Compute Recall@K, NDCG@K
+    \end{minipage}
+    }
+    \caption{The Multi-Stage Inference Workflow implemented in this project.}
+    \label{fig:workflow}
+\end{figure}
+
+\subsection{Component Details}
+
+\subsubsection{Baselines}
+To establish ground truth performance, we implemented:
+\begin{itemize}
+    \item \textbf{Most Popular:} Non-personalized global popularity ranking.
+    \item \textbf{Item-KNN:} Collaborative filtering based on item-item cosine similarity matrices.
+\end{itemize}
+
+\subsubsection{Retrieval Model: Two-Tower}
+We implemented a Dual Encoder using PyTorch. The model consists of a User Tower and an Item Tower (embedding dim $d=64$). We utilized Bayesian Personalized Ranking (BPR) loss to optimize the dot product similarity between positive interactions and random negatives.
+
+\subsubsection{Ranking Models}
+\begin{itemize}
+    \item \textbf{DeepFM:} A hybrid model combining factorization machines for second-order feature interactions and deep neural networks for high-order interactions.
+    \item \textbf{XGBoost (Comparison):} A Gradient Boosted Tree model trained using LambdaMART logic. We engineered features including Log-Price, Sales Rank, and Time-Decay.
+\end{itemize}
+
+\section{Experiments and Results}
+
+\subsection{Evaluation Metrics}
+We evaluated models using a Hold-out split (Train/Validation/Test).
+\begin{itemize}
+    \item \textbf{Retrieval Metrics:} Recall@K, Hit Rate@K.
+    \item \textbf{Ranking Metrics:} AUC (Area Under Curve), LogLoss, NDCG@K.
+\end{itemize}
+
+\subsection{Performance Comparison}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lccc}
+    \toprule
+    \textbf{Model} & \textbf{Recall@10} & \textbf{NDCG@10} & \textbf{AUC} \\
+    \midrule
+    Most Popular & 0.0077 & - & - \\
+    Item-KNN     & 0.0123 & - & - \\
+    Two-Tower (Retrieval) & 0.0072 & - & - \\
+    DeepFM (Ranking)      & 0.9991* & 0.7915* & - \\
+    XGBoost (Ranking)     & - & - & 0.6402 \\
+    \bottomrule
+    \end{tabular}
+    \caption{Performance comparison. *Note: DeepFM metrics appear inflated due to the negative sampling ratio in the test set provided by RecBole.}
+    \label{tab:results}
+\end{table}
+
+\section{Discussion and Analysis}
+
+\subsection{The XGBoost Overfitting \& Data Leakage Investigation}
+During the development of the XGBoost ranker, we initially observed a perfect \textbf{AUC of 1.0} on the validation set. Upon investigation, this was identified as data leakage. 
+\begin{itemize}
+    \item \textbf{Cause:} The model memorized the specific \texttt{item\_id} and \texttt{user\_id} indices. Since negative samples were drawn from the entire catalog (including "dead" items), the model simply learned to distinguish "active items" from "inactive items" rather than learning user preference.
+    \item \textbf{Solution:} We removed ID features and relied strictly on content features (Price, Rank), and switched to "Hard Negative Sampling" (sampling only from interacted items). This reduced AUC to a realistic \textbf{0.64}, confirming the model was now learning generalizable patterns.
+\end{itemize}
+
+\subsection{Retrieval Underperformance}
+The Two-Tower model achieved a Recall@10 of 0.0072, slightly underperforming the Item-KNN baseline (0.0123). This suggests that for extremely sparse datasets, simple co-occurrence statistics (KNN) may outweigh learned embeddings unless the deep model is trained with extensive hyperparameter tuning or auxiliary features.
+
+\section{Conclusion}
+This project implemented a full recommendation pipeline. We demonstrated that while deep learning models (DeepFM) offer powerful feature interaction capabilities, tree-based models (XGBoost) require careful feature engineering to avoid overfitting on ID-based features. Future work would involve implementing a sequence-aware model (SASRec) to better capture the temporal dynamics identified in the EDA.
+
+\end{document}
