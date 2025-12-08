@@ -1,14 +1,14 @@
 # Recommendation System
 
-A comprehensive recommendation system implementation using the Amazon Beauty dataset. This project demonstrates a complete recommendation pipeline from data preprocessing to model evaluation, including both retrieval and ranking stages.
+A recommendation system implementation using the Amazon Beauty dataset. This project demonstrates a recommendation pipeline from data preprocessing to model evaluation, including both retrieval and ranking stages.
 
 ## Overview
 
 This project implements a two-stage recommendation system:
 1. **Retrieval Stage**: Candidate generation using embedding-based models
-2. **Ranking Stage**: Precise ranking of candidates using machine learning models
+2. **Ranking Stage**: Ranking of candidates using machine learning models
 
-The system is built using popular frameworks including RecBole, PyTorch, XGBoost, and FAISS for efficient similarity search.
+The system is built using frameworks including RecBole, PyTorch, XGBoost, and FAISS for efficient similarity search.
 
 ## Dataset
 
@@ -27,7 +27,7 @@ The project uses the Amazon Beauty product review dataset, which includes:
 ├── amazon_beauty_EDA.ipynb        # Exploratory Data Analysis
 ├── baseline.ipynb                 # Baseline models (Most Popular, Item-KNN)
 ├── Retrieval_self.ipynb          # Two-Tower retrieval model implementation
-├── Retrieval_v2.ipynb            # Enhanced retrieval model (Colab-ready)
+├── Retrieval_v2.ipynb            # Enhanced retrieval model
 ├── ranking_xgboost_v2.ipynb      # XGBoost ranking model
 ├── ranking_deepfm.ipynb          # DeepFM ranking model (RecBole)
 ├── eval_utils.py                 # Evaluation utilities for consistent metrics
@@ -48,7 +48,7 @@ The project uses the Amazon Beauty product review dataset, which includes:
 
 ```bash
 python3 -m venv recbole_env
-source recbole_env/bin/activate  # On Windows: recbole_env\Scripts\activate
+source recbole_env/bin/activate  
 ```
 
 ### 2. Install Dependencies
@@ -196,11 +196,6 @@ pip install xgboost
 
 See `requirements.txt` for complete list of dependencies.
 
-## Running on Google Colab
-
-The `Retrieval_v2.ipynb` notebook includes a Colab badge for easy execution in Google Colab:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yguo005/Recommendation_System/blob/main/Retrieval_v2.ipynb)
 
 ## Results Summary
 
