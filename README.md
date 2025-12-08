@@ -183,12 +183,16 @@ All models use the same evaluation protocol via `eval_utils.py` for fair compari
 
 - **RecBole** (1.2.0): Recommendation system library
 - **PyTorch** (2.9.1): Deep learning framework
-- **XGBoost**: Gradient boosting library
 - **scikit-learn** (1.7.2): Machine learning utilities
 - **pandas** (2.3.3): Data manipulation
 - **numpy** (2.3.5): Numerical computing
 - **FAISS**: Efficient similarity search (via RecBole)
 - **Jupyter**: Interactive notebooks
+
+**Note:** If you plan to use the XGBoost ranking notebook (`ranking_xgboost_v2.ipynb`), you'll need to install XGBoost separately:
+```bash
+pip install xgboost
+```
 
 See `requirements.txt` for complete list of dependencies.
 
