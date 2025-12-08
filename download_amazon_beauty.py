@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Quick script to download and preprocess Amazon Beauty dataset using RecBole.
-This uses the minimal download-only configuration for fastest execution.
+This uses the minimal download-only configuration.
 
 Usage:
     python download_amazon_beauty.py

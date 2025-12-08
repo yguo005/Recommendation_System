@@ -15,7 +15,27 @@ import numpy as np
 import pandas as pd
 import sys
 
+"""
+    Build an evaluation dataframe with 1 positive + `num_neg` random negatives per user.
+    
+    Args
+   
+    train_df : pd.DataFrame
+        the train split (must include user_id, item_id, label).
+    test_df : pd.DataFrame
+        the test split (must include user_id, item_id, label).
+    num_neg : int, default 5
+        Number of random negative items per user.
+    seed : int, default 42
+        RNG seed for reproducibility.
+    max_users : int, optional
+        Limit number of users for faster evaluation (for testing).
 
+    Returns
+   
+    eval_df : pd.DataFrame
+        DataFrame with columns [user_id, item_id, label].
+"""
 def build_random_neg_eval_df(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
@@ -23,28 +43,7 @@ def build_random_neg_eval_df(
     seed: int = 42,
     max_users: int = None,
 ) -> pd.DataFrame:
-    """
-    Build an evaluation dataframe with 1 positive + `num_neg` random negatives per user.
     
-
-    Args
-    ----
-    train_df : pd.DataFrame
-        Interaction dataframe for the train split (must include user_id, item_id, label).
-    test_df : pd.DataFrame
-        Interaction dataframe for the test split.
-    num_neg : int, default 5
-        Number of random negative items per user.
-    seed : int, default 42
-        RNG seed for reproducibility.
-    max_users : int, optional
-        Limit number of users for faster evaluation (useful for testing).
-
-    Returns
-    -------
-    eval_df : pd.DataFrame
-        DataFrame with columns [user_id, item_id, label].
-    """
     rng = np.random.default_rng(seed)
 
     print("  Filtering positives")
@@ -104,7 +103,7 @@ def build_random_neg_eval_df(
         # Sample negatives (exclude user's seen items)
         seen = user_seen.get(user, set())
         
-        # Fast sampling: sample more than needed, filter, take first num_neg
+        # sample more than needed, filter, take first num_neg
         n_sample = min(num_neg * 3, n_items)
         candidates = rng.choice(all_pos_items, size=n_sample, replace=False)
         neg_items = [c for c in candidates if c not in seen][:num_neg]
@@ -124,18 +123,12 @@ def build_random_neg_eval_df(
     sys.stdout.flush()
     return eval_df
 
-
-def evaluate_recall_ndcg_at_k(
-    eval_df: pd.DataFrame,
-    score_col: str,
-    ks: Tuple[int, ...] = (10, 20),
-) -> Dict[str, float]:
-    """
+"""
     Compute recall@K and ndcg@K for a model given scores on a random-negative eval_df.
 
     Assumes:
       - eval_df contains columns: user_id, item_id, label (1 or 0), and `score_col`.
-      - For each user, eval_df has exactly ONE positive (label==1) and `num_neg` negatives.
+      - For each user, eval_df has exactly one positive (label==1) and `num_neg` negatives.
 
     Metrics:
       - recall@K: fraction of users where the positive is ranked in top-K.
@@ -146,7 +139,13 @@ def evaluate_recall_ndcg_at_k(
       - "recall@10", "recall@20", ...
       - "ndcg@10", "ndcg@20", ...
       - "num_users"
-    """
+"""
+def evaluate_recall_ndcg_at_k(
+    eval_df: pd.DataFrame,
+    score_col: str,
+    ks: Tuple[int, ...] = (10, 20),
+) -> Dict[str, float]:
+    
     metrics: Dict[str, float] = {}
     total_users = 0
 
